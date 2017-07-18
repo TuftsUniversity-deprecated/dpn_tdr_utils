@@ -9,22 +9,39 @@ f = File.new filename
 doc = Nokogiri::XML::Document.parse f
 f.close
 
-#Get rid of Audit trail
-doc.xpath("//foxml:datastream[@ID='AUDIT']").each {|n| n.remove()}
+puts "PID : #{filename}"
 
+#Get rid of Audit trail
+begin
+  doc.xpath("//foxml:datastream[@ID='AUDIT']").each {|n| n.remove()}
+rescue Nokogiri::XML::XPath::SyntaxError
+  puts "Audit Error"
+end
 #Keep only the last version of a datastream
-doc.xpath("//foxml:datastreamVersion[position() < last()]").each {|n| n.remove()}
-doc.xpath("//foxml:datastreamVersion").each do |n|
-  n.remove_attribute("CREATED")
-  n.remove_attribute("SIZE")
-  n["ID"] = n["ID"].gsub(/\.[1-9]+/,".0")
+begin
+  doc.xpath("//foxml:datastreamVersion[position() < last()]").each {|n| n.remove()}
+  doc.xpath("//foxml:datastreamVersion").each do |n|
+    n.remove_attribute("CREATED")
+    n.remove_attribute("SIZE")
+    n["ID"] = n["ID"].gsub(/\.[1-9]+/,".0")
+  end
+rescue Nokogiri::XML::XPath::SyntaxError
+  puts "DatastreamVersion Error"
 end
 
 #set all datastreams versionable false
-doc.xpath("//foxml:datastream").each {|n| n["VERSIONABLE"] = "false"}
+begin
+  doc.xpath("//foxml:datastream").each {|n| n["VERSIONABLE"] = "false"}
+rescue Nokogiri::XML::XPath::SyntaxError
+  puts "Versionable Error"
+end
 
 #change M datastreams to X for type xml
-doc.xpath("//foxml:datastreamVersion[@MIMETYPE='text/xml']/..").each {|ds| ds["CONTROL_GROUP"] = "X"}
+begin
+  doc.xpath("//foxml:datastreamVersion[@MIMETYPE='text/xml']/..").each {|ds| ds["CONTROL_GROUP"] = "X"}
+rescue Nokogiri::XML::XPath::SyntaxError
+  puts "MimeType Error"
+end
 
 #Decode binaryContent
 nodeset = doc.xpath("//foxml:datastreamVersion[@MIMETYPE='text/xml']/foxml:binaryContent/..")
